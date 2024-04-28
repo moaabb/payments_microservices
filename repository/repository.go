@@ -1,7 +1,8 @@
 package repository
 
 type CustomerRepository interface {
-	GetCustomers() []any
+	/* GetCustomers() []any
 	CreateCustomer() any
-	UpdateCustomer() any
+	UpdateCustomer() any */
+
 }

@@ -2,9 +2,10 @@ package main
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/moaabb/payments_microservices/customer/handlers"
 )
 
-func getRoutes() *fiber.App {
+func getRoutes(handler *handlers.CustomerHandler) *fiber.App {
 	app := fiber.New()
 
 	app.Get("/", func(c *fiber.Ctx) error {

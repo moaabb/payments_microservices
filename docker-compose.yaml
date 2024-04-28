@@ -1,0 +1,45 @@
+version: '3.9'
+services:
+    customer_svc:
+        image: customer_svc:0.1
+        ports:
+            - 8080:8080
+        environment:
+            'PORT': ':8080'
+            'DB_URL': 'postgres://moab:supersecure@db/paymentsdb'
+        networks:
+            - app
+        depends_on:
+            - db
+        restart: always
+
+    db:
+        networks:
+            - app
+        image: 'postgres:16.0'
+        ports:
+            - 5432:5432
+        environment:
+            POSTGRES_PASSWORD: supersecure
+            POSTGRES_USER: moab
+            POSTGRES_DB: paymentsdb
+        volumes:
+            - './init.sql:/docker-entrypoint-initdb.d/init.sql'
+            - pgdata:/var/lib/postgresql/data
+        command: postgres -c checkpoint_timeout=600 -c max_wal_size=4096
+        healthcheck:
+            test: pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+            interval: 10s
+            timeout: 2s
+            retries: 10
+        deploy:
+            resources:
+                limits:
+                    cpus: '0.6'
+                    memory: '700MB'
+
+networks:
+    app:
+
+volumes:
+    pgdata:

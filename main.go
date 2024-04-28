@@ -7,27 +7,31 @@ import (
 	"time"
 
 	"github.com/moaabb/payments_microservices/customer/config"
+	"github.com/moaabb/payments_microservices/customer/db"
+	"github.com/moaabb/payments_microservices/customer/db/customerdb"
+	"github.com/moaabb/payments_microservices/customer/handlers"
+	"github.com/moaabb/payments_microservices/customer/logger"
 	"go.uber.org/zap"
 )
 
+var log = logger.GetLogger()
+
 func main() {
-
-	logger, err := zap.NewDevelopment()
-	if err != nil {
-		panic(err)
-	}
-
 	cfg := config.LoadConfig()
-	app := getRoutes()
+	conn := db.ConnectToDatabase(cfg.DbUrl)
+	repo := customerdb.NewCustomerRepository(conn)
+	h := handlers.NewCustomerHandler(repo, log)
+
+	app := getRoutes(h)
 
 	go func() {
-		err = app.Listen(cfg.ServerPort)
+		err := app.Listen(cfg.ServerPort)
 		if err != nil {
-			logger.Fatal("could not start server", zap.Error(err))
+			log.Fatal("could not start server", zap.Error(err))
 		}
 	}()
 
-	logger.Info(fmt.Sprintf("Server running and listening on port %s", cfg.ServerPort))
+	log.Info(fmt.Sprintf("Server running and listening on port %s", cfg.ServerPort))
 
 	s := make(chan os.Signal, 1)
 
@@ -35,6 +39,6 @@ func main() {
 
 	sig := <-s
 
-	logger.Info(fmt.Sprintf("Signal received: %v. Shutting down the server gracefully...\n", sig))
+	log.Info(fmt.Sprintf("Signal received: %v. Shutting down the server gracefully...\n", sig))
 	app.ShutdownWithTimeout(time.Second * 20)
 }
