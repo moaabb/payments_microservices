@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 
@@ -32,8 +31,7 @@ func NewCustomerHandler(db repository.CustomerRepository, logger *zap.Logger, v 
 func (m *CustomerHandler) GetCustomers(c *fiber.Ctx) error {
 	customers, err := m.service.GetCustomers()
 	if err != nil {
-		m.logger.Error(err.Error())
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(err.StatusCode).JSON(m.handleError(err))
 	}
 
 	return c.JSON(customers)
@@ -44,7 +42,7 @@ func (m *CustomerHandler) GetCustomerById(c *fiber.Ctx) error {
 
 	customer, err := m.service.GetCustomerById(customerId)
 	if err != nil {
-		return c.Status(http.StatusNotFound).JSON(fiber.Map{})
+		return c.Status(err.StatusCode).JSON(m.handleError(err))
 	}
 
 	return c.JSON(customer)
@@ -77,8 +75,7 @@ func (m *CustomerHandler) CreateCustomer(c *fiber.Ctx) error {
 
 	customer, err := m.service.CreateCustomer(payload)
 	if err != nil {
-		m.logger.Error(err.Error())
-		c.Status(http.StatusUnprocessableEntity).JSON(err)
+		return c.Status(err.StatusCode).JSON(m.handleError(err))
 	}
 
 	return c.JSON(customer)
@@ -86,4 +83,11 @@ func (m *CustomerHandler) CreateCustomer(c *fiber.Ctx) error {
 
 func (m *CustomerHandler) UpdateCustomer(c *fiber.Ctx) error {
 	return nil
+}
+
+func (m *CustomerHandler) handleError(err *domainErrors.BusinessError) fiber.Map {
+	return fiber.Map{
+		"errorCode": err.Code,
+		"message":   err.Message,
+	}
 }
