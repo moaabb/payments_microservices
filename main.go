@@ -6,11 +6,13 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/moaabb/payments_microservices/customer/config"
 	"github.com/moaabb/payments_microservices/customer/db"
 	"github.com/moaabb/payments_microservices/customer/db/customerdb"
 	"github.com/moaabb/payments_microservices/customer/handlers"
 	"github.com/moaabb/payments_microservices/customer/logger"
+	"github.com/moaabb/payments_microservices/customer/models/domainErrors"
 	"go.uber.org/zap"
 )
 
@@ -20,7 +22,9 @@ func main() {
 	cfg := config.LoadConfig()
 	conn := db.ConnectToDatabase(cfg.DbUrl)
 	repo := customerdb.NewCustomerRepository(conn)
-	h := handlers.NewCustomerHandler(repo, log)
+	validator := domainErrors.NewValidator(log, validator.New())
+
+	h := handlers.NewCustomerHandler(repo, log, validator)
 
 	app := getRoutes(h)
 
