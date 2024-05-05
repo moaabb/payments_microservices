@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -14,6 +15,22 @@ type Customer struct {
 	BirthDate  Date    `json:"birthDate"`
 	Email      *string `json:"email" validate:"required,email"`
 	Phone      *string `json:"phone" validate:"required,min=11,max=11"`
+}
+
+func NewCustomer(id int, name string, birthDate Date, email string, phone string) *Customer {
+	return &Customer{
+		CustomerId: &id,
+		Name:       &name,
+		BirthDate:  birthDate,
+		Email:      &email,
+		Phone:      &phone,
+	}
+}
+
+func (m *Customer) ToString() string {
+	out, _ := json.Marshal(m)
+
+	return string(out)
 }
 
 type Date struct {

@@ -1,11 +1,14 @@
 package domainErrors
 
-import "net/http"
+import (
+	"encoding/json"
+	"net/http"
+)
 
 type BusinessError struct {
-	Code       string
-	Message    string
-	StatusCode int
+	Code       string `json:"errorCode"`
+	Message    string `json:"message"`
+	StatusCode int    `json:"-"`
 }
 
 func NewBusinessError(code string, message string, status int) *BusinessError {
@@ -14,6 +17,12 @@ func NewBusinessError(code string, message string, status int) *BusinessError {
 		Message:    message,
 		StatusCode: status,
 	}
+}
+
+func (m *BusinessError) ToString() string {
+	out, _ := json.Marshal(m)
+
+	return string(out)
 }
 
 // Errors

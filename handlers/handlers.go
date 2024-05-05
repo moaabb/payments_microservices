@@ -8,47 +8,55 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/moaabb/payments_microservices/customer/models/domainErrors"
 	"github.com/moaabb/payments_microservices/customer/models/entities"
-	"github.com/moaabb/payments_microservices/customer/repository"
-	"github.com/moaabb/payments_microservices/customer/services"
+	use_case "github.com/moaabb/payments_microservices/customer/usecase"
+	"go.opentelemetry.io/otel/trace"
+
 	"go.uber.org/zap"
 )
 
 type CustomerHandler struct {
-	service   *services.CustomerService
+	service   use_case.CustomerService
 	logger    *zap.Logger
 	validator *domainErrors.XValidator
+	tracer    trace.Tracer
 }
 
-func NewCustomerHandler(db repository.CustomerRepository, logger *zap.Logger, v *domainErrors.XValidator) *CustomerHandler {
-	service := services.NewCustomerService(db, logger)
+func NewCustomerHandler(svc use_case.CustomerService, logger *zap.Logger, v *domainErrors.XValidator, t trace.Tracer) *CustomerHandler {
 	return &CustomerHandler{
-		service:   service,
+		service:   svc,
 		logger:    logger,
 		validator: v,
+		tracer:    t,
 	}
 }
 
 func (m *CustomerHandler) GetCustomers(c *fiber.Ctx) error {
-	customers, err := m.service.GetCustomers()
+	ctx, span := m.tracer.Start(c.Context(), fmt.Sprintf("%s %s", c.Method(), c.Request().URI().Path()))
+	defer span.End()
+	customers, err := m.service.GetCustomers(ctx)
 	if err != nil {
-		return c.Status(err.StatusCode).JSON(m.handleError(err))
+		return c.Status(err.StatusCode).JSON(err)
 	}
 
 	return c.JSON(customers)
 }
 
 func (m *CustomerHandler) GetCustomerById(c *fiber.Ctx) error {
+	ctx, span := m.tracer.Start(c.Context(), fmt.Sprintf("%s %s", c.Method(), c.Request().URI().Path()))
+	defer span.End()
 	customerId, _ := strconv.Atoi(c.Params("customerId"))
 
-	customer, err := m.service.GetCustomerById(customerId)
+	customer, err := m.service.GetCustomerById(ctx, customerId)
 	if err != nil {
-		return c.Status(err.StatusCode).JSON(m.handleError(err))
+		return c.Status(err.StatusCode).JSON(err)
 	}
 
 	return c.JSON(customer)
 }
 
 func (m *CustomerHandler) CreateCustomer(c *fiber.Ctx) error {
+	ctx, span := m.tracer.Start(c.Context(), fmt.Sprintf("%s %s", c.Method(), c.Request().URI().Path()))
+	defer span.End()
 	var payload entities.Customer
 
 	c.BodyParser(&payload)
@@ -73,9 +81,9 @@ func (m *CustomerHandler) CreateCustomer(c *fiber.Ctx) error {
 
 	}
 
-	customer, err := m.service.CreateCustomer(payload)
+	customer, err := m.service.CreateCustomer(ctx, payload)
 	if err != nil {
-		return c.Status(err.StatusCode).JSON(m.handleError(err))
+		return c.Status(err.StatusCode).JSON(err)
 	}
 
 	return c.JSON(customer)
@@ -83,11 +91,4 @@ func (m *CustomerHandler) CreateCustomer(c *fiber.Ctx) error {
 
 func (m *CustomerHandler) UpdateCustomer(c *fiber.Ctx) error {
 	return nil
-}
-
-func (m *CustomerHandler) handleError(err *domainErrors.BusinessError) fiber.Map {
-	return fiber.Map{
-		"errorCode": err.Code,
-		"message":   err.Message,
-	}
 }

@@ -1,29 +1,37 @@
 package services
 
 import (
+	"context"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/moaabb/payments_microservices/customer/models/domainErrors"
 	"github.com/moaabb/payments_microservices/customer/models/entities"
-	"github.com/moaabb/payments_microservices/customer/repository"
+	use_case "github.com/moaabb/payments_microservices/customer/usecase"
+	"go.opentelemetry.io/otel/trace"
+
 	"go.uber.org/zap"
 )
 
 type CustomerService struct {
-	db     repository.CustomerRepository
+	db     use_case.CustomerRepository
 	logger *zap.Logger
+	tracer trace.Tracer
 }
 
-func NewCustomerService(db repository.CustomerRepository, logger *zap.Logger) *CustomerService {
+func NewCustomerService(db use_case.CustomerRepository, logger *zap.Logger, t trace.Tracer) *CustomerService {
 	return &CustomerService{
 		db:     db,
 		logger: logger,
+		tracer: t,
 	}
 }
 
-func (m *CustomerService) GetCustomers() ([]entities.Customer, *domainErrors.BusinessError) {
-	customers, err := m.db.GetCustomers()
+func (m *CustomerService) GetCustomers(ctx context.Context) ([]entities.Customer, *domainErrors.BusinessError) {
+	ctx, span := m.tracer.Start(ctx, "CustomerService")
+	defer span.End()
+	customers, err := m.db.GetCustomers(ctx)
 	if err != nil {
-		m.logger.Error(err.Error())
+		m.logger.Info(err.Error())
 		return nil, m.handleError(err)
 	}
 
@@ -34,28 +42,34 @@ func (m *CustomerService) GetCustomers() ([]entities.Customer, *domainErrors.Bus
 	return customers, nil
 }
 
-func (m *CustomerService) GetCustomerById(id int) (*entities.Customer, *domainErrors.BusinessError) {
-	customer, err := m.db.GetCustomerById(id)
+func (m *CustomerService) GetCustomerById(ctx context.Context, id int) (*entities.Customer, *domainErrors.BusinessError) {
+	ctx, span := m.tracer.Start(ctx, "CustomerService")
+	defer span.End()
+	customer, err := m.db.GetCustomerById(ctx, id)
 	if err != nil {
-		m.logger.Error(err.Error())
+		m.logger.Info(err.Error())
 		return nil, m.handleError(err)
 	}
 	return customer, nil
 }
 
-func (m *CustomerService) CreateCustomer(payload entities.Customer) (*entities.Customer, *domainErrors.BusinessError) {
-	customer, err := m.db.CreateCustomer(payload)
+func (m *CustomerService) CreateCustomer(ctx context.Context, payload entities.Customer) (*entities.Customer, *domainErrors.BusinessError) {
+	ctx, span := m.tracer.Start(ctx, "CustomerService")
+	defer span.End()
+	customer, err := m.db.CreateCustomer(ctx, payload)
 	if err != nil {
-		m.logger.Error(err.Error())
+		m.logger.Info(err.Error())
 		return nil, m.handleError(err)
 	}
 
 	return customer, nil
 }
-func (m *CustomerService) UpdateCustomer(payload entities.Customer) (*entities.Customer, *domainErrors.BusinessError) {
-	customer, err := m.db.UpdateCustomer(payload)
+func (m *CustomerService) UpdateCustomer(ctx context.Context, payload entities.Customer) (*entities.Customer, *domainErrors.BusinessError) {
+	ctx, span := m.tracer.Start(ctx, "CustomerService")
+	defer span.End()
+	customer, err := m.db.UpdateCustomer(ctx, payload)
 	if err != nil {
-		m.logger.Error(err.Error())
+		m.logger.Info(err.Error())
 		return nil, m.handleError(err)
 	}
 

@@ -13,7 +13,8 @@ func getRoutes(handler *handlers.CustomerHandler) *fiber.App {
 	app := fiber.New()
 
 	app.Use(func(c *fiber.Ctx) error {
-		log.Info(fmt.Sprintf("%s %s %s", c.Method(), c.BaseURL(), c.Request().URI().Path()))
+		requestIdentifier := fmt.Sprintf("%s %s %s", c.Method(), c.BaseURL(), c.Request().URI().Path())
+		log.Info(requestIdentifier)
 
 		return c.Next()
 	})
