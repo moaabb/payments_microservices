@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/gofiber/contrib/otelfiber/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/moaabb/payments_microservices/customer/handlers"
 )
@@ -11,6 +12,8 @@ import (
 
 func getRoutes(handler *handlers.CustomerHandler) *fiber.App {
 	app := fiber.New()
+
+	app.Use(otelfiber.Middleware())
 
 	app.Use(func(c *fiber.Ctx) error {
 		requestIdentifier := fmt.Sprintf("%s %s %s", c.Method(), c.BaseURL(), c.Request().URI().Path())

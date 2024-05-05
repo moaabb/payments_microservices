@@ -8,26 +8,21 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/moaabb/payments_microservices/customer/models/entities"
 	repository "github.com/moaabb/payments_microservices/customer/usecase"
-	"go.opentelemetry.io/otel/trace"
 )
 
 const DB_OPERATION_TIMEOUT = 10 * time.Second
 
 type CustomerRepository struct {
-	db     *pgxpool.Pool
-	tracer trace.Tracer
+	db *pgxpool.Pool
 }
 
-func NewCustomerRepository(conn *pgxpool.Pool, t trace.Tracer) repository.CustomerRepository {
+func NewCustomerRepository(conn *pgxpool.Pool) repository.CustomerRepository {
 	return &CustomerRepository{
-		db:     conn,
-		tracer: t,
+		db: conn,
 	}
 }
 
-func (m *CustomerRepository) GetCustomers(ctx_t context.Context) ([]entities.Customer, error) {
-	_, span := m.tracer.Start(ctx_t, GetCustomers)
-	defer span.End()
+func (m *CustomerRepository) GetCustomers() ([]entities.Customer, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), DB_OPERATION_TIMEOUT)
 	defer cancel()
@@ -60,9 +55,7 @@ func (m *CustomerRepository) GetCustomers(ctx_t context.Context) ([]entities.Cus
 
 	return customers, nil
 }
-func (m *CustomerRepository) GetCustomerById(ctx_t context.Context, id int) (*entities.Customer, error) {
-	_, span := m.tracer.Start(ctx_t, GetCustomerById)
-	defer span.End()
+func (m *CustomerRepository) GetCustomerById(id int) (*entities.Customer, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), DB_OPERATION_TIMEOUT)
 	defer cancel()
 
@@ -83,9 +76,7 @@ func (m *CustomerRepository) GetCustomerById(ctx_t context.Context, id int) (*en
 	return customer, nil
 }
 
-func (m *CustomerRepository) CreateCustomer(ctx_t context.Context, payload entities.Customer) (*entities.Customer, error) {
-	_, span := m.tracer.Start(ctx_t, CreateCustomer)
-	defer span.End()
+func (m *CustomerRepository) CreateCustomer(payload entities.Customer) (*entities.Customer, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), DB_OPERATION_TIMEOUT)
 	defer cancel()
 
@@ -110,9 +101,7 @@ func (m *CustomerRepository) CreateCustomer(ctx_t context.Context, payload entit
 
 	return customer, nil
 }
-func (m *CustomerRepository) UpdateCustomer(ctx_t context.Context, customer entities.Customer) (*entities.Customer, error) {
-	_, span := m.tracer.Start(ctx_t, "CustomerService")
-	defer span.End()
+func (m *CustomerRepository) UpdateCustomer(customer entities.Customer) (*entities.Customer, error) {
 	return nil, nil
 }
 

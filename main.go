@@ -59,9 +59,9 @@ func main() {
 
 	cfg := config.LoadConfig()
 	conn := db.ConnectToDatabase(cfg.DbUrl)
-	repo := customerdb.NewCustomerRepository(conn, tracer)
+	repo := customerdb.NewCustomerRepository(conn)
 	validator := domainErrors.NewValidator(log, validator.New())
-	svc := services.NewCustomerService(repo, log, tracer)
+	svc := services.NewCustomerService(repo, log)
 
 	h := handlers.NewCustomerHandler(svc, log, validator, tracer)
 

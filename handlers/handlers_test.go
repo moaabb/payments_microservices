@@ -23,24 +23,24 @@ var date, _ = time.Parse("2006-02-1", "2006-02-1")
 var expectedBody = entities.NewCustomer(1, "Teste", entities.Date{Time: date}, "teste@email.com", "77952658445")
 
 type MockCustomerService struct {
-	getCustomers    func(ctx context.Context) ([]entities.Customer, *domainErrors.BusinessError)
-	getCustomerById func(ctx context.Context, id int) (*entities.Customer, *domainErrors.BusinessError)
-	createCustomer  func(ctx context.Context, customer entities.Customer) (*entities.Customer, *domainErrors.BusinessError)
-	updateCustomer  func(ctx context.Context, customer entities.Customer) (*entities.Customer, *domainErrors.BusinessError)
+	getCustomers    func() ([]entities.Customer, *domainErrors.BusinessError)
+	getCustomerById func(id int) (*entities.Customer, *domainErrors.BusinessError)
+	createCustomer  func(customer entities.Customer) (*entities.Customer, *domainErrors.BusinessError)
+	updateCustomer  func(customer entities.Customer) (*entities.Customer, *domainErrors.BusinessError)
 }
 
-func (m *MockCustomerService) GetCustomers(ctx context.Context) ([]entities.Customer, *domainErrors.BusinessError) {
-	return m.getCustomers(ctx)
+func (m *MockCustomerService) GetCustomers() ([]entities.Customer, *domainErrors.BusinessError) {
+	return m.getCustomers()
 }
-func (m *MockCustomerService) GetCustomerById(ctx context.Context, id int) (*entities.Customer, *domainErrors.BusinessError) {
-	return m.getCustomerById(ctx, id)
+func (m *MockCustomerService) GetCustomerById(id int) (*entities.Customer, *domainErrors.BusinessError) {
+	return m.getCustomerById(id)
 }
 
-func (m *MockCustomerService) CreateCustomer(ctx context.Context, payload entities.Customer) (*entities.Customer, *domainErrors.BusinessError) {
-	return m.createCustomer(ctx, payload)
+func (m *MockCustomerService) CreateCustomer(payload entities.Customer) (*entities.Customer, *domainErrors.BusinessError) {
+	return m.createCustomer(payload)
 }
-func (m *MockCustomerService) UpdateCustomer(ctx context.Context, payload entities.Customer) (*entities.Customer, *domainErrors.BusinessError) {
-	return m.updateCustomer(ctx, payload)
+func (m *MockCustomerService) UpdateCustomer(payload entities.Customer) (*entities.Customer, *domainErrors.BusinessError) {
+	return m.updateCustomer(payload)
 }
 
 func TestGetCustomerById(t *testing.T) {
@@ -73,7 +73,7 @@ func TestGetCustomerById(t *testing.T) {
 
 	// Success case
 	m = &MockCustomerService{
-		getCustomerById: func(ctx context.Context, id int) (*entities.Customer, *domainErrors.BusinessError) {
+		getCustomerById: func(id int) (*entities.Customer, *domainErrors.BusinessError) {
 			return expectedBody, nil
 		},
 	}
@@ -93,7 +93,7 @@ func TestGetCustomerById(t *testing.T) {
 
 	// // Not found case
 	m = &MockCustomerService{
-		getCustomerById: func(ctx context.Context, id int) (*entities.Customer, *domainErrors.BusinessError) {
+		getCustomerById: func(id int) (*entities.Customer, *domainErrors.BusinessError) {
 			return nil, domainErrors.NotFoundError
 		},
 	}
