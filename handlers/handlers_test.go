@@ -1,9 +1,7 @@
 package handlers_test
 
 import (
-	"context"
 	"encoding/json"
-	"log"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -13,10 +11,7 @@ import (
 	"github.com/moaabb/payments_microservices/customer/handlers"
 	"github.com/moaabb/payments_microservices/customer/models/domainErrors"
 	"github.com/moaabb/payments_microservices/customer/models/entities"
-	"github.com/moaabb/payments_microservices/customer/observability"
 	"github.com/stretchr/testify/assert"
-	"go.opentelemetry.io/otel"
-	"go.uber.org/zap"
 )
 
 var date, _ = time.Parse("2006-02-1", "2006-02-1")
@@ -44,30 +39,8 @@ func (m *MockCustomerService) UpdateCustomer(payload entities.Customer) (*entiti
 }
 
 func TestGetCustomerById(t *testing.T) {
-	ctx := context.Background()
-
-	// For testing to print out traces to the console
-	// exp, err := newConsoleExporter()
-	exp, err := observability.NewConsoleExporter()
-
-	if err != nil {
-		log.Fatal("failed to initialize exporter", zap.Error(err))
-	}
-
-	// Create a new tracer provider with a batch span processor and the given exporter.
-	tp := observability.NewTraceProvider(exp)
-
-	// Handle shutdown properly so nothing leaks.
-	defer func() { _ = tp.Shutdown(ctx) }()
-
-	otel.SetTracerProvider(tp)
-
-	// Finally, set the tracer that can be used for this package.
-	tracer := tp.Tracer("customer_svc")
-
 	var output entities.Customer
-	logger := zap.NewExample()
-	validator := domainErrors.NewValidator(logger, validator.New())
+	validator := domainErrors.NewValidator(validator.New())
 
 	m := new(MockCustomerService)
 
@@ -84,7 +57,7 @@ func TestGetCustomerById(t *testing.T) {
 
 	app := fiber.New()
 
-	handler := handlers.NewCustomerHandler(m, logger, validator, tracer)
+	handler := handlers.NewCustomerHandler(m, validator)
 	app.Get("v1/api/customers/:customerId<int>", handler.GetCustomerById)
 	resp, _ := app.Test(req)
 
@@ -106,7 +79,7 @@ func TestGetCustomerById(t *testing.T) {
 
 	var errorOut domainErrors.BusinessError
 
-	handler = handlers.NewCustomerHandler(m, logger, validator, tracer)
+	handler = handlers.NewCustomerHandler(m, validator)
 	app.Get("v1/api/customers/:customerId<int>", handler.GetCustomerById)
 	resp, _ = app.Test(req)
 

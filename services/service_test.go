@@ -10,7 +10,6 @@ import (
 	"github.com/moaabb/payments_microservices/customer/models/entities"
 	"github.com/moaabb/payments_microservices/customer/services"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 )
 
 type MockCustomerRepository struct {
@@ -39,7 +38,6 @@ func TestGetCustomers(t *testing.T) {
 }
 
 func TestGetCustomerById(t *testing.T) {
-	logger := zap.NewExample()
 	date, _ := time.Parse("2006-02-1", "2006-02-1")
 	expectedBody := entities.NewCustomer(1, "Teste", entities.Date{Time: date}, "teste@email.com", "77952658445")
 
@@ -52,7 +50,7 @@ func TestGetCustomerById(t *testing.T) {
 		},
 	}
 
-	service := services.NewCustomerService(m, logger)
+	service := services.NewCustomerService(m)
 	resp, _ := service.GetCustomerById(*expectedBody.CustomerId)
 	assert.Equal(t, expectedBody, resp, "they should be equal")
 
@@ -63,7 +61,7 @@ func TestGetCustomerById(t *testing.T) {
 		},
 	}
 
-	service = services.NewCustomerService(m, logger)
+	service = services.NewCustomerService(m)
 	_, httpErr := service.GetCustomerById(*expectedBody.CustomerId)
 
 	assert.Equal(t, domainErrors.NotFoundError, httpErr, "they should be equal")

@@ -6,18 +6,18 @@ import (
 	"github.com/gofiber/contrib/otelfiber/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/moaabb/payments_microservices/customer/handlers"
+	"go.opentelemetry.io/otel/trace"
 )
 
-// var logger = logger.GetLogger() /*  */
-
-func getRoutes(handler *handlers.CustomerHandler) *fiber.App {
+func getRoutes(handler *handlers.CustomerHandler, tp trace.TracerProvider) *fiber.App {
 	app := fiber.New()
 
-	app.Use(otelfiber.Middleware())
+	app.Use(otelfiber.Middleware(otelfiber.WithTracerProvider(tp)))
 
 	app.Use(func(c *fiber.Ctx) error {
 		requestIdentifier := fmt.Sprintf("%s %s %s", c.Method(), c.BaseURL(), c.Request().URI().Path())
-		log.Info(requestIdentifier)
+		logger.Info(requestIdentifier)
+		logger.Info(fmt.Sprintf("processing event: {\"body\": %s}", string(c.Body())))
 
 		return c.Next()
 	})

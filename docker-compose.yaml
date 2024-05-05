@@ -14,6 +14,12 @@ services:
         depends_on:
             - db
         restart: always
+        labels:
+            co.elastic.logs/enabled: true
+            co.elastic.logs/json.keys_under_root: true
+            co.elastic.logs/json.overwrite_keys: true
+            co.elastic.logs/json.add_error_key: true
+            co.elastic.logs/json.expand_keys: true
 
     db:
         networks:
@@ -39,6 +45,12 @@ services:
                 limits:
                     cpus: '0.6'
                     memory: '700MB'
+        labels:
+            co.elastic.logs/enabled: true
+            co.elastic.logs/json.keys_under_root: true
+            co.elastic.logs/json.overwrite_keys: true
+            co.elastic.logs/json.add_error_key: true
+            co.elastic.logs/json.expand_keys: true
 
     init:
         image: &tempoImage grafana/tempo:latest
@@ -52,6 +64,8 @@ services:
 
     grafana:
         image: grafana/grafana:10.4.2
+        labels:
+            co.elastic.logs/enabled: false
         volumes:
             - ../shared/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
         environment:
@@ -69,6 +83,8 @@ services:
     tempo:
         image: *tempoImage
         command: ['-config.file=/etc/tempo.yaml']
+        labels:
+            co.elastic.logs/enabled: false
         volumes:
             - ../shared/tempo-config.yaml:/etc/tempo.yaml
             - tempodata:/var/tempo
@@ -86,6 +102,8 @@ services:
 
     prometheus:
         image: prom/prometheus:latest
+        labels:
+            co.elastic.logs/enabled: false
         command:
             - --config.file=/etc/prometheus.yaml
             - --web.enable-remote-write-receiver
@@ -95,6 +113,33 @@ services:
         ports:
             - '9090:9090'
         networks:
+            - monitoring
+
+    filebeat:
+        labels:
+            co.elastic.logs/enabled: false
+        user: root
+        image: elastic/filebeat:7.17.21
+        command: filebeat -e -strict.perms=false
+        volumes:
+            - ../shared/filebeat.docker.yml:/usr/share/filebeat/filebeat.yml
+            - /var/lib/docker/containers:/var/lib/docker/containers:ro
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+        networks:
+            - app
+            - monitoring
+
+    elasticsearch:
+        labels:
+            co.elastic.logs/enabled: false
+        environment:
+            - discovery.type=single-node
+            - xpack.security.enabled=false
+        image: elasticsearch:8.13.0
+        ports:
+            - 9200:9200
+        networks:
+            - app
             - monitoring
 
 networks:

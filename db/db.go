@@ -4,11 +4,10 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/moaabb/payments_microservices/customer/logger"
-	"go.uber.org/zap"
+	logging "github.com/moaabb/payments_microservices/customer/logger"
 )
 
-var log = logger.GetLogger()
+var log = logging.GetLogger()
 
 func ConnectToDatabase(dsn string) *pgxpool.Pool {
 	dbpool, err := pgxpool.New(context.Background(), dsn)
@@ -22,6 +21,6 @@ func ConnectToDatabase(dsn string) *pgxpool.Pool {
 
 func handleError(err error) {
 	if err != nil {
-		log.Fatal("Unable to create connection pool", zap.Error(err))
+		log.Fatalf("unable to create connection pool: %s", err.Error())
 	}
 }

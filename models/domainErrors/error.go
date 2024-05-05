@@ -5,8 +5,10 @@ import (
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
-	"go.uber.org/zap"
+	logging "github.com/moaabb/payments_microservices/customer/logger"
 )
+
+var logger = logging.GetLogger()
 
 type (
 	ErrorResponse struct {
@@ -18,7 +20,6 @@ type (
 
 	XValidator struct {
 		validator *validator.Validate
-		logger    *zap.Logger
 	}
 
 	GlobalErrorHandlerResp struct {
@@ -41,7 +42,7 @@ func (xv XValidator) Validate(data interface{}) []ErrorResponse {
 			elem.Value = err.Value()       // Export field value
 			elem.Error = true
 
-			xv.logger.Info(fmt.Sprintf("error validatind input: %s", elem.Stringify()))
+			logger.Info(fmt.Sprintf("error validatind input: %s", elem.Stringify()))
 			validationErrors = append(validationErrors, elem)
 		}
 	}
@@ -55,9 +56,8 @@ func (m ErrorResponse) Stringify() string {
 	return string(out)
 }
 
-func NewValidator(l *zap.Logger, v *validator.Validate) *XValidator {
+func NewValidator(v *validator.Validate) *XValidator {
 	return &XValidator{
-		logger:    l,
 		validator: v,
 	}
 }

@@ -31,13 +31,13 @@ func NewOTLPExporter(ctx context.Context, otlpEndpoint string) (sdktrace.SpanExp
 
 // TracerProvider is an OpenTelemetry TracerProvider.
 // It provides Tracers to instrumentation so it can trace operational flow through a system.
-func NewTraceProvider(exp sdktrace.SpanExporter) *sdktrace.TracerProvider {
+func NewTraceProvider(exp sdktrace.SpanExporter, appName string) *sdktrace.TracerProvider {
 	// Ensure default SDK resources and the required service name are set.
 	r, err := resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceName("customer_svc"),
+			semconv.ServiceName(appName),
 		),
 	)
 
