@@ -7,7 +7,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/moaabb/payments_microservices/customer/config"
 	"go.elastic.co/ecszap"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -28,8 +27,7 @@ func InitLogger(lvl, serviceName, environment string) error {
 
 func GetLogger() *ApplicationLogger {
 	if logHandle == nil {
-		cfg := config.LoadConfig()
-		InitLogger(cfg.LogLevel, cfg.AppName, cfg.Environment)
+		InitLogger("INFO", "my-app", "dev")
 	}
 
 	return logHandle

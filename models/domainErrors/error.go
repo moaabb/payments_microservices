@@ -8,8 +8,6 @@ import (
 	logging "github.com/moaabb/payments_microservices/customer/logger"
 )
 
-var logger = logging.GetLogger()
-
 type (
 	ErrorResponse struct {
 		Error       bool
@@ -20,6 +18,7 @@ type (
 
 	XValidator struct {
 		validator *validator.Validate
+		logger    *logging.ApplicationLogger
 	}
 
 	GlobalErrorHandlerResp struct {
@@ -42,7 +41,7 @@ func (xv XValidator) Validate(data interface{}) []ErrorResponse {
 			elem.Value = err.Value()       // Export field value
 			elem.Error = true
 
-			logger.Info(fmt.Sprintf("error validatind input: %s", elem.Stringify()))
+			xv.logger.Info(fmt.Sprintf("error validatind input: %s", elem.Stringify()))
 			validationErrors = append(validationErrors, elem)
 		}
 	}
@@ -59,5 +58,6 @@ func (m ErrorResponse) Stringify() string {
 func NewValidator(v *validator.Validate) *XValidator {
 	return &XValidator{
 		validator: v,
+		logger:    logging.GetLogger(),
 	}
 }

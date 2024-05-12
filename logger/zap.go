@@ -8,12 +8,16 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-type ContextKey string
+const (
+	CORRELATION_ID string = "correlation_id"
+	SPAN_ID        string = "span_id"
+	USER_ID        string = "user_id"
+)
 
-var contextKeys = map[ContextKey]string{
-	ContextKey("trace_id"): "traceID",
-	ContextKey("span_id"):  "spanID",
-	ContextKey("user_id"):  "userID",
+var contextKeys = map[string]string{
+	CORRELATION_ID: "correlation_id",
+	SPAN_ID:        "span_id",
+	USER_ID:        "user_id",
 }
 
 type ZapLogger struct {
