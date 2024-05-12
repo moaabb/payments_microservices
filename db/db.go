@@ -7,9 +7,11 @@ import (
 	logging "github.com/moaabb/payments_microservices/customer/logger"
 )
 
-var log = logging.GetLogger()
+var logger *logging.ApplicationLogger
 
 func ConnectToDatabase(dsn string) *pgxpool.Pool {
+	logger = logging.GetLogger()
+
 	dbpool, err := pgxpool.New(context.Background(), dsn)
 	handleError(err)
 
@@ -21,6 +23,6 @@ func ConnectToDatabase(dsn string) *pgxpool.Pool {
 
 func handleError(err error) {
 	if err != nil {
-		log.Fatalf("unable to create connection pool: %s", err.Error())
+		logger.Fatalf("unable to create connection pool: %s", err.Error())
 	}
 }

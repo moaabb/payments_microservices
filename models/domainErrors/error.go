@@ -1,14 +1,12 @@
 package domainErrors
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/go-playground/validator/v10"
 	logging "github.com/moaabb/payments_microservices/customer/logger"
 )
-
-var logger = logging.GetLogger()
 
 type (
 	ErrorResponse struct {
@@ -20,6 +18,7 @@ type (
 
 	XValidator struct {
 		validator *validator.Validate
+		logger    *logging.ApplicationLogger
 	}
 
 	GlobalErrorHandlerResp struct {
@@ -28,7 +27,7 @@ type (
 	}
 )
 
-func (xv XValidator) Validate(data interface{}) []ErrorResponse {
+func (xv XValidator) Validate(ctx context.Context, data interface{}) []ErrorResponse {
 	validationErrors := []ErrorResponse{}
 
 	errs := xv.validator.Struct(data)
@@ -42,7 +41,7 @@ func (xv XValidator) Validate(data interface{}) []ErrorResponse {
 			elem.Value = err.Value()       // Export field value
 			elem.Error = true
 
-			logger.Info(fmt.Sprintf("error validatind input: %s", elem.Stringify()))
+			xv.logger.WithContext(ctx).Infof("error validatind input: %s", elem.Stringify())
 			validationErrors = append(validationErrors, elem)
 		}
 	}
@@ -59,5 +58,6 @@ func (m ErrorResponse) Stringify() string {
 func NewValidator(v *validator.Validate) *XValidator {
 	return &XValidator{
 		validator: v,
+		logger:    logging.GetLogger(),
 	}
 }

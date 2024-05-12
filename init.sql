@@ -9,4 +9,5 @@ CREATE TABLE IF NOT EXISTS cus.customers (
 );
 
 INSERT INTO cus.customers(name, birth_date, email, phone) VALUES
-('Luigi Cogumelo', to_date('1998-06-12', 'YYYY-MM-DD'), 'luigi@email.com', '77991507621');
+('Luigi Cogumelo', to_date('1998-06-12', 'YYYY-MM-DD'), 'luigi@email.com', '77991507621'),
+('Mario Cogumelo', to_date('1995-02-08', 'YYYY-MM-DD'), 'mario@email.com', '77991230966');

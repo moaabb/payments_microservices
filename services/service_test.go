@@ -1,11 +1,13 @@
 package services_test
 
 import (
+	"context"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	logging "github.com/moaabb/payments_microservices/customer/logger"
 	"github.com/moaabb/payments_microservices/customer/models/domainErrors"
 	"github.com/moaabb/payments_microservices/customer/models/entities"
 	"github.com/moaabb/payments_microservices/customer/services"
@@ -33,13 +35,12 @@ func (m *MockCustomerRepository) UpdateCustomer(payload entities.Customer) (*ent
 	return m.updateCustomer(payload)
 }
 
-func TestGetCustomers(t *testing.T) {
-
-}
-
 func TestGetCustomerById(t *testing.T) {
+	logging.InitLogger("INFO", "customer_svc", "test")
+
 	date, _ := time.Parse("2006-02-1", "2006-02-1")
 	expectedBody := entities.NewCustomer(1, "Teste", entities.Date{Time: date}, "teste@email.com", "77952658445")
+	ctx := context.Background()
 
 	m := new(MockCustomerRepository)
 
@@ -51,7 +52,7 @@ func TestGetCustomerById(t *testing.T) {
 	}
 
 	service := services.NewCustomerService(m)
-	resp, _ := service.GetCustomerById(*expectedBody.CustomerId)
+	resp, _ := service.GetCustomerById(ctx, *expectedBody.CustomerId)
 	assert.Equal(t, expectedBody, resp, "they should be equal")
 
 	// Not found case
@@ -62,7 +63,7 @@ func TestGetCustomerById(t *testing.T) {
 	}
 
 	service = services.NewCustomerService(m)
-	_, httpErr := service.GetCustomerById(*expectedBody.CustomerId)
+	_, httpErr := service.GetCustomerById(ctx, *expectedBody.CustomerId)
 
 	assert.Equal(t, domainErrors.NotFoundError, httpErr, "they should be equal")
 	assert.Equal(t, http.StatusNotFound, httpErr.StatusCode, "they should be equal")

@@ -8,6 +8,9 @@ services:
             'PORT': ':8080'
             'DB_URL': 'postgres://moab:supersecure@db/paymentsdb'
             'OTLP_ENDPOINT': tempo:4318
+            'APP_NAME': customer_svc
+            'ENV': dev
+            'LOG_LEVEL': INFO
         networks:
             - app
             - monitoring
@@ -100,20 +103,20 @@ services:
         networks:
             - monitoring
 
-    prometheus:
-        image: prom/prometheus:latest
-        labels:
-            co.elastic.logs/enabled: false
-        command:
-            - --config.file=/etc/prometheus.yaml
-            - --web.enable-remote-write-receiver
-            - --enable-feature=exemplar-storage
-        volumes:
-            - ../shared/prometheus.yaml:/etc/prometheus.yaml
-        ports:
-            - '9090:9090'
-        networks:
-            - monitoring
+    # prometheus:
+    #     image: prom/prometheus:latest
+    #     labels:
+    #         co.elastic.logs/enabled: false
+    #     command:
+    #         - --config.file=/etc/prometheus.yaml
+    #         - --web.enable-remote-write-receiver
+    #         - --enable-feature=exemplar-storage
+    #     volumes:
+    #         - ../shared/prometheus.yaml:/etc/prometheus.yaml
+    #     ports:
+    #         - '9090:9090'
+    #     networks:
+    #         - monitoring
 
     filebeat:
         labels:
@@ -122,6 +125,7 @@ services:
         image: elastic/filebeat:7.17.21
         command: filebeat -e -strict.perms=false
         volumes:
+            - certs:/etc/client
             - ../shared/filebeat.docker.yml:/usr/share/filebeat/filebeat.yml
             - /var/lib/docker/containers:/var/lib/docker/containers:ro
             - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -129,18 +133,151 @@ services:
             - app
             - monitoring
 
-    elasticsearch:
+    es01:
         labels:
             co.elastic.logs/enabled: false
         environment:
-            - discovery.type=single-node
-            - xpack.security.enabled=false
+            - 'ES_JAVA_OPTS=-Xmx1g -Xms1g'
+            - ELASTIC_PASSWORD=$ELASTIC_PASSWORD
+            - node.name=es01
+            - cluster.name=elasticsearch-cluster
+            - network.host=_site_
+            - discovery.seed_hosts=es01
+            - cluster.initial_master_nodes=es01
+            # - bootstrap.memory_lock=true
+            - xpack.security.enabled=true
+            - xpack.security.authc.token.enabled=true
+            - xpack.security.audit.enabled=true
+            - xpack.security.authc.realms.file.file1.order=0
+            - xpack.security.authc.realms.native.native1.order=1
+            - xpack.security.transport.ssl.enabled=true
+            - xpack.security.transport.ssl.keystore.password=$ELASTICSEARCH01_CERT_PASSWORD
+            - xpack.security.transport.ssl.truststore.password=$ELASTICSEARCH01_CERT_PASSWORD
+            - xpack.security.transport.ssl.keystore.path=$CERTS_DIR/elasticsearch01.p12
+            - xpack.security.transport.ssl.verification_mode=certificate
+            - xpack.security.http.ssl.enabled=true
+            - xpack.security.http.ssl.keystore.password=$ELASTICSEARCH01_CERT_PASSWORD
+            - xpack.security.http.ssl.truststore.password=$ELASTICSEARCH01_CERT_PASSWORD
+            - xpack.security.http.ssl.keystore.path=$CERTS_DIR/elasticsearch01.p12
+            - xpack.security.http.ssl.verification_mode=certificate
+            - xpack.license.self_generated.type=trial
+            - xpack.security.enrollment.enabled=true
         image: elasticsearch:8.13.0
+        volumes: ['certs:$CERTS_DIR']
+        healthcheck:
+            test: curl --cacert $CERTS_DIR/ca/ca.crt -s https://localhost:9200 >/dev/null; if [[ $$? == 52 ]]; then echo 0; else echo 1; fi
+            interval: 30s
+            timeout: 10s
+            retries: 5
         ports:
             - 9200:9200
         networks:
             - app
             - monitoring
+        depends_on:
+            - create_certs
+        restart: always
+
+    kibana:
+        labels:
+            co.elastic.logs/enabled: false
+        environment:
+            - SERVER_NAME=kibana
+            # - ELASTICSEARCH_HOSTS=["https://es01:9200"]
+            - server.host=_site_
+            - xpack.security.enabled=true
+            - elasticsearch.username=elastics
+            - elasticsearch.password=$ELASTIC_PASSWORD
+            - elasticsearch.ssl.certificateAuthorities=/usr/share/kibana/config/certs/ca/ca.crt
+            - elasticsearch.ssl.verificationMode=certificate
+            - server.ssl.enabled=true
+            - server.ssl.key=/usr/share/kibana/config/certs/kibana.key
+            - server.ssl.certificate=/usr/share/kibana/config/certs/kibana.crt
+            - server.ssl.password=${ELASTICSEARCH01_CERT_PASSWORD}
+            - xpack.monitoring.elasticsearch.ssl.verificationMode=certificate
+        image: kibana:8.13.0
+        ports:
+            - 5601:5601
+        volumes:
+            - certs:/usr/share/kibana/config/certs/:ro
+        networks:
+            - app
+            - monitoring
+
+    create_certs:
+        container_name: create_certs
+        image: elasticsearch:8.13.0
+        environment:
+            CA_PASSWORD: $CA_PASSWORD
+            ELASTICSEARCH01_CERT_PASSWORD: $ELASTICSEARCH01_CERT_PASSWORD
+        command: >
+            bash -c '
+                if [[ ! -f /certs/elasticsearch01.p12 ]]; then
+                echo "Excluding old ca";
+                rm -rf /certs/ca.zip;
+                rm -rf /certs/ca;
+                rm -rf /certs/es01;
+                echo "Generating CA" &&
+                bin/elasticsearch-certutil ca --silent --pass ${ELASTICSEARCH01_CERT_PASSWORD} --pem --out /certs/ca.zip &&
+                unzip /certs/ca.zip -d /certs &&
+
+                echo "Generating certificate for Elasticsearch01" &&
+                bin/elasticsearch-certutil cert --silent --ca-cert /certs/ca/ca.crt --ca-key /certs/ca/ca.key --ca-pass ${ELASTICSEARCH01_CERT_PASSWORD} --pass ${ELASTICSEARCH01_CERT_PASSWORD} --dns es01 --out /certs/elasticsearch01.p12 &&
+                
+
+                echo "Generating certificate for Kibana" &&
+                bin/elasticsearch-certutil cert --silent --ca-cert /certs/ca/ca.crt --ca-key /certs/ca/ca.key --ca-pass ${ELASTICSEARCH01_CERT_PASSWORD} --pass ${ELASTICSEARCH01_CERT_PASSWORD} --pem --dns kibana --out /certs/kibana.zip &&
+                unzip /certs/kibana.zip -d /certs &&
+                mv /certs/instance/instance.crt /certs/kibana.crt &&
+                mv /certs/instance/instance.key /certs/kibana.key &&
+                rm -rf /certs/instance;
+
+                echo "Generating certificate for filebeat" &&
+                bin/elasticsearch-certutil cert --silent --ca-cert /certs/ca/ca.crt --ca-key /certs/ca/ca.key --ca-pass ${ELASTICSEARCH01_CERT_PASSWORD} --pass ${ELASTICSEARCH01_CERT_PASSWORD} --pem --dns filebeat --out /certs/filebeat.zip &&
+                unzip /certs/filebeat.zip -d /certs &&
+                mv /certs/instance/instance.crt /certs/filebeat.crt &&
+                mv /certs/instance/instance.key /certs/filebeat.key &&
+                rm -rf /certs/instance;
+                fi;
+                chown -R 1000:0 /certs
+            '
+        user: '0'
+        working_dir: /usr/share/elasticsearch
+        volumes:
+            ['certs:/certs', '.:/usr/share/elasticsearch/config/certificates']
+
+    apigateway:
+        image: devopsfaith/krakend:2.6.2-watch
+        volumes:
+            - ../shared/krakend:/etc/krakend
+            - /home/moab/go/pkg/mod/github.com/devopsfaith:/opt/krakend/plugins
+        command: >
+            run -c krakend.json
+        ports:
+            - 9090:8080
+        networks:
+            - app
+            - monitoring
+
+    rabbitmq:
+        image: rabbitmq:3
+        environment:
+            - RABBITMQ_DEFAULT_PASS=test
+            - RABBITMQ_DEFAULT_USER=test
+        networks:
+            - app
+            - monitoring
+
+    rabbitmq_man:
+        image: rabbitmq:3-management
+        networks:
+            - app
+            - monitoring
+        environment:
+            - RABBITMQ_DEFAULT_PASS=test
+            - RABBITMQ_DEFAULT_USER=test
+        ports:
+            - 15672:15672
 
 networks:
     app:
@@ -149,3 +286,4 @@ networks:
 volumes:
     pgdata:
     tempodata:
+    certs:
