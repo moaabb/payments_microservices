@@ -50,7 +50,7 @@ func (m *CustomerHandler) CreateCustomer(c *fiber.Ctx) error {
 	var payload entities.Customer
 
 	c.BodyParser(&payload)
-	errs := m.validator.Validate(payload)
+	errs := m.validator.Validate(c.Context(), payload)
 	if len(errs) > 0 {
 		errMsgs := make([]string, 0)
 

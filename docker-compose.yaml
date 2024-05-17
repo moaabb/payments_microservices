@@ -246,6 +246,39 @@ services:
         volumes:
             ['certs:/certs', '.:/usr/share/elasticsearch/config/certificates']
 
+    apigateway:
+        image: devopsfaith/krakend:2.6.2-watch
+        volumes:
+            - ../shared/krakend:/etc/krakend
+            - /home/moab/go/pkg/mod/github.com/devopsfaith:/opt/krakend/plugins
+        command: >
+            run -c krakend.json
+        ports:
+            - 9090:8080
+        networks:
+            - app
+            - monitoring
+
+    rabbitmq:
+        image: rabbitmq:3
+        environment:
+            - RABBITMQ_DEFAULT_PASS=test
+            - RABBITMQ_DEFAULT_USER=test
+        networks:
+            - app
+            - monitoring
+
+    rabbitmq_man:
+        image: rabbitmq:3-management
+        networks:
+            - app
+            - monitoring
+        environment:
+            - RABBITMQ_DEFAULT_PASS=test
+            - RABBITMQ_DEFAULT_USER=test
+        ports:
+            - 15672:15672
+
 networks:
     app:
     monitoring:
